@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Procena broja ljudi</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      #map {
+        height: 100%;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #calcPane {
+        width: 300px;
+        /*height: 300px;*/
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        background-color: #FFFFFF;
+        z-index: 2;
+        font-family: sans-serif;
+        font-size: 10pt;
+      }
+
+      .polytable {
+        padding: 2px;
+      }
+
+      .polyname {
+        width: 50px;
+        text-align: left;
+      }
+
+      .polyarea {
+        width: 100px;
+        text-align: right;
+      }
+
+      .polydensity {
+        width: 100px;
+        text-align: left;
+      }
+
+      .polynumber {
+        width: 50px;
+        text-align: right;
+      }
+
+      .pac-card {
+        margin: 10px 10px 0 0;
+        border-radius: 2px 0 0 2px;
+        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        outline: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        background-color: #fff;
+        font-family: Roboto;
+      }
+
+      #pac-container {
+        padding-bottom: 12px;
+        margin-right: 12px;
+      }
+
+      .pac-controls {
+        display: inline-block;
+        padding: 5px 11px;
+      }
+
+      .pac-controls label {
+        font-family: Roboto;
+        font-size: 13px;
+        font-weight: 300;
+      }
+
+      #pac-input {
+        background-color: #fff;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        margin-left: 12px;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;
+        width: 400px;
+      }
+
+      #pac-input:focus {
+        border-color: #4d90fe;
+      }
+
+    </style>
+  </head>
+  <body>
+    <input id="pac-input" class="controls" type="text" placeholder="Pronađi"/>
+    <div id="map"></div>
+    <div id="calcPane">
+      <table id="polytable">
+        <thead>
+          <tr>
+            <th class="polyname">P#</th>
+            <th class="polyarea">Površina m<sup>2</sup></th>
+            <th class="polydensity">Gustina</th>
+            <th class="polynumber">Broj</th>
+          </tr>
+        </thead>
+        <tbody/>
+        <tfoot>
+          <tr></tr>
+        </tfoot>
+      </table>
+    </div>
+    <script>
+      // This example requires the Drawing library. Include the libraries=drawing
+      // parameter when you first load the API. For example:
+      // <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD84swsc5_PAFulk5WbmO1Gsk1cPLxLEvQ&libraries=drawing">
+
+      function initMap() {
+        var map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 45.255125, lng: 19.8444378},
+          zoom: 18,
+          mapTypeControlOptions: {
+              style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+              position: google.maps.ControlPosition.TOP_CENTER
+          },
+          streetViewControl: false,
+          fullscreenControlOptions: {
+            position: google.maps.ControlPosition.BOTTOM_RIGHT
+          }
+        });
+
+        var infoWindow = new google.maps.InfoWindow;
+        var colors = ['#000000', '#FF0000', '#800000', '#FFFF00', '#808000', '#00FF00', '#008000', '#00FFFF', '#008080', '#0000FF', '#FF00FF', '#800080'];
+        var allPolygons = [];
+
+        function showInfoWindow(polygon, event) {
+          var html = '<b>Poligon: </b> P' + (polygon.index+1) + '<br/>'
+          html += "<b>Površina: </b> " + getArea(polygon) + " m<sup>2</sup><br/>";
+          html += "<b>Gustina: </b> " + getDensityName(polygon.density) + " <br/>";
+          html += "<b>Broj ljudi: </b> " + getCrowdSize(polygon) + " <br/>";
+          infoWindow.setContent(html);
+          infoWindow.setPosition(event.latLng);
+          infoWindow.open(map);
+        }
+
+        function getDensityName(value) {
+          switch(value) {
+            case 1:
+              return 'mala';
+            case 2:
+              return 'srednja';
+            case 3:
+              return 'velika';
+          }
+        }
+
+        function getArea(polygon) {
+          return Math.round(google.maps.geometry.spherical.computeArea(polygon.getPath()));
+        }
+
+        function getCrowdSize(polygon) {
+          switch (polygon.density) {
+            case 1:
+              return Math.round(getArea(polygon) * 0.5);
+            case 2:
+              return Math.round(getArea(polygon) * 2);
+            case 3:
+              return Math.round(getArea(polygon) * 4);
+            default:
+              return Math.round(getArea(polygon) * 0.5);
+          }
+        }
+
+        function createPanelItem(polygon, row) {
+          var html = '<tr>';
+          html += '<td><span style="color: ' + polygon.color + '; font-weight: bold">P' + (polygon.index+1) + '</span></td>';
+          html += '<td class="polyarea">' + getArea(polygon) + '</td>';
+          html += '<td><select id="combo' + polygon.index + '"><option value="1">mala</option><option value="2">srednja</option><option value="3">velika</option></select></td>';
+          html += '<td class="polynumber">' + getCrowdSize(polygon) + '</td>';
+          html += '</tr>';
+          row.innerHTML = html;          
+          var combo = document.getElementById('combo' + polygon.index);
+          combo.value = '' + polygon.density;
+          combo.addEventListener('change', function() {
+            polygon.density = parseInt(combo.value);
+            updatePanel();
+          });
+        }
+
+        function updatePanelItem(polygon, row) {
+          createPanelItem(polygon, row);
+        }
+
+        function addPanelItem(polygon, tbody) {
+          var row = document.createElement("tr");
+          tbody.appendChild(row);
+          createPanelItem(polygon, row);
+        }
+
+        function updatePanel() {
+          var tBody = document.getElementById('polytable').getElementsByTagName('tbody')[0];
+          var rows = tBody.getElementsByTagName('tr');
+          var totalPeople = 0;
+          for (var i = 0; i < allPolygons.length; i++) {
+            totalPeople += getCrowdSize(allPolygons[i]);
+            if (i < rows.length) {
+              updatePanelItem(allPolygons[i], rows[i]);
+            } else {
+              addPanelItem(allPolygons[i], tBody);
+            }
+          }
+          var footerRow = document.getElementById('polytable').getElementsByTagName('tfoot')[0].getElementsByTagName('tr')[0];
+          footerRow.innerHTML = '<td colspan="3"><b>UKUPNO</b></td><td class="polynumber"><b>' + totalPeople + '</b></td>';
+        }
+
+        var drawingManager = new google.maps.drawing.DrawingManager({
+          drawingMode: google.maps.drawing.OverlayType.POLYGON,
+          drawingControl: true,
+          drawingControlOptions: {
+            position: google.maps.ControlPosition.TOP_CENTER,
+            drawingModes: ['polygon']
+          },
+          markerOptions: {icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png'},
+          polygonOptions: {
+            editable: true,
+            clickable: true,
+            draggable: true
+          },
+          circleOptions: {
+            fillColor: '#ffff00',
+            fillOpacity: 1,
+            strokeWeight: 5,
+            clickable: false,
+            editable: true,
+            zIndex: 1
+          }
+        });
+        drawingManager.setMap(map);
+        google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
+          colorIndex = allPolygons.length % colors.length;
+          polygon.index = allPolygons.length;
+          polygon.density = 1;
+          polygon.color = colors[colorIndex];
+          polygon.setOptions({fillColor: polygon.color, strokeColor: polygon.color});
+          allPolygons.push(polygon);
+          updatePanel();
+          polygon.addListener('click', function(event) {
+            showInfoWindow(polygon, event);
+          });
+          polygon.getPaths().forEach(function(path, index){
+            google.maps.event.addListener(path, 'insert_at', function(){
+              // nova tacka
+              updatePanel();
+            });
+            google.maps.event.addListener(path, 'remove_at', function(){
+              // obrisana tacka
+              updatePanel();
+            });
+            google.maps.event.addListener(path, 'set_at', function(){
+              // pomerena tacka
+              updatePanel();
+            });
+
+          });          
+        });
+
+        initAutocomplete(map);
+      }
+
+      function initAutocomplete(map) {
+        var input = document.getElementById('pac-input');
+        var searchBox = new google.maps.places.SearchBox(input);
+        map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+        map.addListener('bounds_changed', function() {
+          searchBox.setBounds(map.getBounds());
+        });
+
+        var markers = [];
+        searchBox.addListener('places_changed', function() {
+          var places = searchBox.getPlaces();
+
+          if (places.length == 0) {
+            return;
+          }
+
+          // Clear out the old markers.
+          markers.forEach(function(marker) {
+            marker.setMap(null);
+          });
+          markers = [];
+
+          var bounds = new google.maps.LatLngBounds();
+          places.forEach(function(place) {
+            if (!place.geometry) {
+              console.log("Ovaj place nema geometriju.");
+              return;
+            }
+            var icon = {
+              url: place.icon,
+              size: new google.maps.Size(71, 71),
+              origin: new google.maps.Point(0, 0),
+              anchor: new google.maps.Point(17, 34),
+              scaledSize: new google.maps.Size(25, 25)
+            };
+
+            markers.push(new google.maps.Marker({
+              map: map,
+              icon: icon,
+              title: place.name,
+              position: place.geometry.location
+            }));
+
+            if (place.geometry.viewport) {
+              bounds.union(place.geometry.viewport);
+            } else {
+              bounds.extend(place.geometry.location);
+            }
+          });
+          map.fitBounds(bounds);
+        });
+      }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD84swsc5_PAFulk5WbmO1Gsk1cPLxLEvQ&libraries=drawing,geometry,places&callback=initMap"
+         async defer></script>
+  </body>
+</html>
