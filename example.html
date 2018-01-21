@@ -1,0 +1,333 @@
+<html><head><title>Georeferencing of images with OpenLayers externalGraphic</title>
+
+   <meta name="author" content="Arnd Wippermann">
+   <meta name="publisher" content="Ingenieurbüro Reinhard Beck GmbH und Co. Kg">
+   <meta name="copyright" content="Ingenieurbüro Reinhard Beck GmbH und Co. Kg">
+   <meta name="description" content="Georeferencing of images with OpenLayers externalGraphic">
+   <meta name="keywords" content="Google Maps, OpenLayers, mapping, gis, groundoverlay, externalGraphic, georeferencing">
+   <meta name="page-topic" content="mapping">
+   <meta name="page-type" content="map">
+   <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1">
+   <meta http-equiv="content-language" content="en">
+   <meta name="robots" content="index, follow">
+   <meta name="DC.Creator" content="Arnd Wippermann">
+   <meta name="DC.Publisher" content="Ingenieurbüro Reinhard Beck GmbH und Co. Kg">
+   <meta name="DC.Rights" content="Ingenieurbüro Reinhard Beck GmbH und Co. Kg">
+   <meta name="DC.Description" content="Georeferencing of images with OpenLayers externalGraphic">
+   <meta name="DC.Language" content="en">
+
+<head>
+<title>OpenLayers Example ExternalGraphicOverlay</title>
+<link rel="stylesheet" href="http://gis.ibbeck.de/OLClient/theme/default/style.css" type="text/css" />
+<link href="http://gis.ibbeck.de/OLClient/etc/css/dgWindow.css" type="text/css" rel="stylesheet">
+
+<style type="text/css">
+body{
+    font-family:Arial;
+}
+#map {
+    width : 700px;
+    height: 450px;
+    border: 1px solid black;
+}
+
+td{
+    vertical-align:top;
+}
+.txtCount{
+    width:80px;
+    height:19px;
+    vertical-align:top;
+
+}
+
+</style>
+
+<script src="/OLClient/scriptscache_ibb_210.js"></script>
+<script src="drag.js"></script>
+<script src="objMovableDIV.js"></script>
+<script src="externalGraphicOverlay_console.js"></script>
+
+<script type="text/javascript">
+
+OLCVersion = "2.10";
+OpenLayers.Theme   = "http://gis.ibbeck.de/OLClient/theme/default/style.css";
+OpenLayers.ImgPath     = "http://gis.ibbeck.de/OLClient/img/";
+
+var map, ctrlDragFeature;
+var maxZOOM = 21;
+
+var theGraphicUrl, XPos, YPos, theWidth, theHeight, theXOffset, theYOffset, theRotation, theOpa
+var anArray = [];
+theOpa = 0.95;
+
+function init() {
+
+    map = new OpenLayers.Map('map',
+    	{ maxExtent: new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34),
+    	numZoomLevels: maxZOOM+1,
+    	maxResolution: 156543.0399,
+    	units: 'm',
+    	projection: new OpenLayers.Projection("EPSG:900913")
+    	//displayProjection: new OpenLayers.Projection("EPSG:4326")
+    });
+
+    map.addControl(new OpenLayers.Control.LayerSwitcher());
+
+/*
+    var gphy = new OpenLayers.Layer.Google("Google Physical",  {type: G_PHYSICAL_MAP,  sphericalMercator : true, MAX_ZOOM_LEVEL:maxZOOM} );
+    var ghyb = new OpenLayers.Layer.Google("Google Hybrid",    {type: G_HYBRID_MAP,    sphericalMercator : true, MAX_ZOOM_LEVEL:maxZOOM} );
+    var gsat = new OpenLayers.Layer.Google("Google Satellite", {type: G_SATELLITE_MAP, sphericalMercator : true, MAX_ZOOM_LEVEL:maxZOOM} );
+
+    map.addLayers([gsat, gphy, ghyb]);
+    gsat.setOpacity(0.8);
+
+//ESRI high-resolution World Imagery
+    esri_sat = new OpenLayers.Layer.ArcGIS93Rest("ESRI Satellite", "http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?f=image",
+    {   "format" :'png24',
+        "layers" :'show:0'
+    },
+    {   "isBaseLayer":false,
+        "opacity":1,
+        "attribution": "Provided by <a href=\"http://www.esri.com/software/arcgis/arcgisonline/index.html\" target=\"_new\">ESRI</a>",
+        "visibility":true
+    });
+    map.addLayers([esri_sat]);
+    esri_sat.setOpacity(0.8);
+*/
+    var osm_layer = new OpenLayers.Layer.OSM();
+    osm_layer.transitionEffect = 'resize';
+	map.addLayer(osm_layer);
+
+
+
+//London    -13975,6711725
+//Amsterdam 547375,6867985
+
+    anArray[anArray.length] = [1386530, 5146315, 300, 200, 0, -200,   0, 2.388657133483887, "Petersdom Rom Gif", "data/Petersdom.gif"];
+    anArray[anArray.length] = [ 547375, 6867985, 300, 200, 0, -200,   0, 2.388657133483887, "Petersdom NDL Gif", "data/Petersdom.gif"];
+    anArray[anArray.length] = [ -13975, 6711725, 300, 200, 0, -200,   0, 2.388657133483887, "City Arkaden Lon Gif", "data/CityArkaden_SVG_025.gif"];
+    anArray[anArray.length] = [1386140, 5146140,  45,  30, 0,  -30,   0, 9.554628533935547, "City Arkaden Rom", "data/CityArkaden_SVG_05.gif"];
+    anArray[anArray.length] = [ 795762, 6666793, 300, 200, 0, -200,   0, 2.388657133483887, "Petersdom Wtal Gif", "data/Petersdom.gif"];
+    anArray[anArray.length] = [1386140, 5146140, 300, 200, 0, -200,   0, 2.388657133483887, "Petersdom Rom Gif", "data/Petersdom.gif"];
+    anArray[anArray.length] = [ 795762, 6666793,  45,  30, 0,  -30,   0, 9.554628533935547, "City Arkaden Wuppertal", "data/CityArkaden_SVG.gif"];
+    anArray[anArray.length] = [1386140, 5146140,  45,  30, 0,  -30,   0, 2.388657133483887, "Petersdom Rom", "data/Petersdom.jpg"];
+    anArray[anArray.length] = [ 795184, 6665911, 271, 107, 0, -107, -15, 9.554628533935547, "Schauspielhaus Wuppertal", "data/Schauspielhaus_15g_line.gif"];
+
+    theZoom = 16;
+
+    map.setCenter(new OpenLayers.LonLat(anArray[0][0], anArray[0][1]), theZoom);
+
+    theGraphicUrl = anArray[0][9];
+    XPos          = anArray[0][0];
+    YPos          = anArray[0][1];
+    theWidth      = anArray[0][2];
+    theHeight     = anArray[0][3];
+    theXOffset    = anArray[0][4];
+    theYOffset    = anArray[0][5];
+    theRotation   = anArray[0][6];
+    theResolution = anArray[0][7];
+
+    var context = {
+        getUrl : function(){
+            return theGraphicUrl;
+        },
+        getXO : function(){
+            return theXOffset * theResolution / map.getResolution();
+        },
+        getYO : function(){
+            return theYOffset * theResolution / map.getResolution();
+        },
+        getW : function(){
+            return theWidth * theResolution / map.getResolution();
+        },
+        getH : function(){
+            return theHeight * theResolution / map.getResolution();
+        },
+        getR : function(){
+            return theRotation;
+        }
+    };
+    var template = {
+        externalGraphic: "${getUrl}",
+        graphicXOffset : "${getXO}",
+        graphicYOffset : "${getYO}",
+        graphicWidth   : "${getW}",
+        graphicHeight  : "${getH}",
+        rotation       : "${getR}",
+        strokeWidth    : 2,
+        strokeColor    : 'blue',
+        pointRadius    : 0
+    };
+    var oStyleMap = new OpenLayers.Style(template, {context: context});
+
+    vectorLayer = new OpenLayers.Layer.Vector("externalGraphic Overlay");
+    vectorLayer.styleMap = oStyleMap;
+
+    map.addLayers([vectorLayer]);
+    var newPoint = new OpenLayers.Geometry.Point(anArray[0][0], anArray[0][1]);
+    var pointFeature = new OpenLayers.Feature.Vector(newPoint);                             //,null,style_blue);
+    pointFeature.attributes.render = "drawAlways";
+    vectorLayer.addFeatures([pointFeature]);
+    vectorLayer.setOpacity(theOpa);
+
+    init_applyValue();
+
+    var theHTML = "";
+    for(var i=0;i<anArray.length;i++)
+    {   theHTML += '<option value="' + i + '">' + anArray[i][8];
+    }
+    document.getElementById("selExample").innerHTML = theHTML;
+
+    map.setCenter(new OpenLayers.LonLat(anArray[0][0], anArray[0][1]), theZoom);
+
+    ctrlDragFeature = new OpenLayers.Control.DragFeature(vectorLayer);
+    ctrlDragFeature.onComplete = ctrlDragFeature_onComplete;
+    map.addControl(ctrlDragFeature);
+    ctrlDragFeature.activate();
+    init_winMessage();
+
+}
+
+function ctrlDragFeature_onComplete()
+{
+    document.getElementById("iXPos").value = vectorLayer.features[0].geometry.x;
+    document.getElementById("iYPos").value = vectorLayer.features[0].geometry.y;
+}
+
+function addVal(dt, ID)
+{
+    if(ID != "iXPos" && ID != "iYPos" && ID != "iOpa")
+    {   var Wert = parseInt(document.getElementById(ID).value);
+        document.getElementById(ID).value = Wert + dt;
+    }
+    else if(ID == "iOpa")
+    {   var Wert = parseFloat(document.getElementById(ID).value);
+        document.getElementById(ID).value = Wert + dt/10;
+    }
+    else
+    {   var Wert = parseFloat(document.getElementById(ID).value);
+        document.getElementById(ID).value = Wert + dt*map.getResolution();
+    }
+    applyValue();
+}
+
+function applyValue()
+{
+    theGraphicUrl = document.getElementById("iUrl").value;
+    XPos          = parseFloat(document.getElementById("iXPos"  ).value);
+    YPos          = parseFloat(document.getElementById("iYPos"  ).value);
+    theWidth      = parseInt(document.getElementById("iWidth" ).value);
+    theHeight     = parseInt(document.getElementById("iHeight").value);
+    theXOffset    = parseInt(document.getElementById("iXOff"  ).value);
+    theYOffset    = parseInt(document.getElementById("iYOff"  ).value);
+    theRotation   = parseInt(document.getElementById("iRota").value);
+    theOpa        = parseFloat(document.getElementById("iOpa").value);
+
+    if(theOpa>=1)
+    {   theOpa = 1;
+        vectorLayer.setOpacity(theOpa);
+        document.getElementById("iOpa").value = 1;
+    }
+    else if(theOpa<=0)
+    {   theOpa = 0;
+        vectorLayer.setOpacity(theOpa);
+        document.getElementById("iOpa").value = 0;
+    }
+    else
+        vectorLayer.setOpacity(theOpa);
+
+    vectorLayer.features[0].geometry.x = XPos;
+    vectorLayer.features[0].geometry.y = YPos;
+
+    vectorLayer.drawFeature(vectorLayer.features[0]);
+}
+
+function init_applyValue()
+{
+    document.getElementById("iUrl").value    = theGraphicUrl;
+    document.getElementById("iXPos"  ).value = XPos;
+    document.getElementById("iYPos"  ).value = YPos;
+    document.getElementById("iWidth" ).value = theWidth;
+    document.getElementById("iHeight").value = theHeight;
+    document.getElementById("iXOff"  ).value = theXOffset;
+    document.getElementById("iYOff"  ).value = theYOffset;
+    document.getElementById("iRota").value =   theRotation;
+    document.getElementById("iOpa").value =   theOpa;
+
+}
+
+function setValues()
+{
+    var idx = document.getElementById("selExample").selectedIndex;
+    theGraphicUrl = anArray[idx][9];
+    XPos          = anArray[idx][0];
+    YPos          = anArray[idx][1];
+    theWidth      = anArray[idx][2];
+    theHeight     = anArray[idx][3];
+    theXOffset    = anArray[idx][4];
+    theYOffset    = anArray[idx][5];
+    theRotation   = anArray[idx][6];
+    theResolution = anArray[idx][7];
+
+    init_applyValue();
+
+    map.setCenter(new OpenLayers.LonLat(anArray[idx][0], anArray[idx][1]), map.getZoom());
+
+    vectorLayer.removeFeatures(vectorLayer.features[0]);
+    var newPoint = new OpenLayers.Geometry.Point(XPos, YPos);
+    var pointFeature = new OpenLayers.Feature.Vector(newPoint);                             //,null,style_blue);
+    pointFeature.attributes.render = "drawAlways";
+    vectorLayer.addFeatures([pointFeature]);
+
+    vectorLayer.features[0].geometry.x = XPos;
+    vectorLayer.features[0].geometry.y = YPos;
+
+    vectorLayer.drawFeature(vectorLayer.features[0]);
+
+}
+
+</script>
+</head>
+<body onload="init()">
+
+  <script>
+
+      var LeftText  = "homepage:gis.ibbeck.de";
+      var RightText = "examples:gis.ibbeck.de";
+
+      var LeftLink  = "http://gis.ibbeck.de/ginfo/";
+      var RightLink = "http://gis.ibbeck.de/ginfo/apps/OLExamples/Index/index.html";
+
+      var MiddleText = "&#160;&#160;-&#160;&#160;OpenLayers Examples by gis.ibbeck.de&#160;&#160;-&#160;&#160;";
+
+      document.write('<center><div id="fusszeile" onmouseover="this.style.backgroundColor=\'#CCCCCC\';this.style.opacity=1;" onmouseout="this.style.backgroundColor=\'#CCCCCC\';this.style.opacity=0.25;" style="z-index:9999;cursor:pointer;position:absolute;top:0px;left:0px;width:100%;padding-left:0px;background-color:#CCCCCC;opacity:0.25;font-size: 10px; font-weight: bold;"><a href="' + LeftLink + '">' + LeftText + '<\/a><span style="cursor:default">' + MiddleText + '<\/span><a style="color:blue;cursor:pointer;" href="' + RightLink + '">' + RightText + '<\/a><\/div><\/center>');
+
+  </script>
+
+    <h1 id="title">OpenLayers externalGraphic, Georeferencing of images</h1>
+
+<table>
+<tr><td><div id="map"></div></td><td id="sel">
+
+<table>
+
+<tr><td>Examples</td><td>                                                                  <select id="selExample" onchange="setValues();" style="width:120px;"></td></tr>
+
+<tr><td>Graphic</td><td>                                                                  <input id="iUrl"    type="text" class="txtCount" onchange="applyValue();" style="width:120px;"></td></tr>
+<tr><td>X Coord</td><td> <img src="west-mini.png" onclick="addVal(-1,'iXPos');">   <input id="iXPos"   type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iXPos');"></td></tr>
+<tr><td>Y Coord</td><td> <img src="west-mini.png" onclick="addVal(-1,'iYPos');">   <input id="iYPos"   type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iYPos');"></td></tr>
+<tr><td>Width</td><td>   <img src="west-mini.png" onclick="addVal(-1,'iWidth');">  <input id="iWidth"  type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iWidth');"></td></tr>
+<tr><td>Height</td><td>  <img src="west-mini.png" onclick="addVal(-1,'iHeight');"> <input id="iHeight" type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iHeight');"></td></tr>
+<tr><td>X Offset</td><td><img src="west-mini.png" onclick="addVal(-1,'iXOff');">   <input id="iXOff"   type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iXOff');"></td></tr>
+<tr><td>Y Offset</td><td><img src="west-mini.png" onclick="addVal(-1,'iYOff');">   <input id="iYOff"   type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iYOff');"></td></tr>
+<tr><td>Rotation</td><td><img src="west-mini.png" onclick="addVal(-1,'iRota');">   <input id="iRota"   type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iRota');"></td></tr>
+<tr><td>Opacity</td><td> <img src="west-mini.png" onclick="addVal(-1,'iOpa');">    <input id="iOpa"    type="text" class="txtCount" onchange="applyValue();"><img src="east-mini.png" onclick="addVal(1,'iOpa');"></td></tr>
+</table>
+<input type="checkbox" checked onchange="if(this.checked)ctrlDragFeature.activate();else ctrlDragFeature.deactivate()"><label>toggle Image DragControl</label>
+<P style="width:220">Change the image parameters with the control above. Move the image with mouse down.</P>
+</td></tr>
+</table>
+<input type="button" value="OLC Console" onclick="MovableDIVtoggle('winMessage')">
+</body>
+</html>

@@ -42,6 +42,26 @@
         width: 50px;
         text-align: right;
       }      
+      #imagePane {
+        width: 230px;
+        position: fixed;
+        bottom: 15px;
+        left: 15px;
+        background-color: #FFFFFF;
+        z-index: 2;
+        font-family: sans-serif;
+        font-size: 10pt;
+        padding: 5px;
+      }
+      .label {
+        width: 70px;
+        text-align: right;
+        display: inline-block;
+      }
+      .field {
+        width: 120px;
+        display: inline-block;
+      }
     </style>
     <script src="https://openlayers.org/en/v4.6.4/build/ol.js" type="text/javascript"></script>
     <title>Procena broja ljudi</title>
@@ -53,7 +73,7 @@
         <thead>
           <tr>
             <th class="polyname">P#</th>
-            <th class="polyarea">Površina m<sup>2</sup></th>
+            <th class="polyarea">Površina</th>
             <th class="polydensity">Gustina</th>
             <th class="polynumber">Broj</th>
           </tr>
@@ -63,8 +83,50 @@
           <tr></tr>
         </tfoot>
       </table>
-    </div>    
+    </div>
+    <div id="imagePane">
+      <b>Slika</b>
+      <form id="imageForm">
+        <input type="file" id="imageInput" onchange="chooseImage(event)"/>
+        <div>
+          <span class="label">X coord</span>
+          <span class="field"><input type="number" id="xcoord" name="xcoord" step="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">Y coord</span>
+          <span class="field"><input type="number" id="ycoord" name="ycoord" step="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">širina</span>
+          <span class="field"><input type="number" id="width" name="width" step="1" min="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">visina</span>
+          <span class="field"><input type="number" id="height" name="height" step="1" min="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">X ofset</span>
+          <span class="field"><input type="number" id="xoffset" name="xoffset" step="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">Y ofset</span>
+          <span class="field"><input type="number" id="yoffset" name="yoffset" step="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">rotacija</span>
+          <span class="field"><input type="number" id="rotation" name="rotation" step="1" onchange="setImageStyle()"/></span>
+        </div>
+        <div>
+          <span class="label">providnost</span>
+          <span class="field"><input type="number" id="opacity" name="opacity" step="0.1" min="0" max="1" onchange="setImageStyle()"/></span>
+        </div>
+      </form>
+    </div>
+    <canvas id="imageCanvas" width="300" height="300" style="display: none"/>
     <script type="text/javascript">
+      /*
+       *  polygon handling
+       */
       var colors = ['#000000', '#FF0000', '#800000', '#FFFF00', '#808000', 
                     '#00FF00', '#008000', '#00FFFF', '#008080', '#0000FF', 
                     '#FF00FF', '#800080'];
@@ -73,19 +135,16 @@
       function getDensityName(value) {
         switch(value) {
           case 1:
-            return 'mala';
+            return 'mala (0.5)';
           case 2:
-            return 'srednja';
+            return 'srednja (2)';
           case 3:
-            return 'velika';
+            return 'velika (4)';
         }
       }
 
       function getArea(polygon) {
-        var area = ol.Sphere.getArea(polygon.getGeometry());
-        var sqm = Math.round(area);
-        return sqm;
-        //return Math.round(google.maps.geometry.spherical.computeArea(polygon.getPath()));
+        return Math.round(ol.Sphere.getArea(polygon.getGeometry()));
       }
 
       function getCrowdSize(polygon) {
@@ -105,7 +164,7 @@
         var html = '<tr>';
         html += '<td><span style="color: ' + polygon.color + '; font-weight: bold">P' + (polygon.index+1) + '</span></td>';
         html += '<td class="polyarea">' + getArea(polygon) + '</td>';
-        html += '<td><select id="combo' + polygon.index + '"><option value="1">mala</option><option value="2">srednja</option><option value="3">velika</option></select></td>';
+        html += '<td><select id="combo' + polygon.index + '"><option value="1">mala (0.5)</option><option value="2">srednja (2)</option><option value="3">velika (4)</option></select></td>';
         html += '<td class="polynumber">' + getCrowdSize(polygon) + '</td>';
         html += '</tr>';
         row.innerHTML = html;          
@@ -143,18 +202,20 @@
         footerRow.innerHTML = '<td colspan="3"><b>UKUPNO</b></td><td class="polynumber"><b>' + totalPeople + '</b></td>';
       }
 
+      /*
+       *  map setup
+       */
       var raster = new ol.layer.Tile({
         source: new ol.source.OSM()
       });
       var source = new ol.source.Vector({wrapX: false});
-      var vector = new ol.layer.Vector({
-        source: source
-      });
-      var sketch; // currently drawn feature
+      var vector = new ol.layer.Vector({source: source});
+      var imageSource = new ol.source.Vector({wrapX: false});
+      var imageVector = new ol.layer.Vector({source: imageSource});
 
       var map = new ol.Map({
         target: 'map',
-        layers: [raster, vector],
+        layers: [raster, imageVector, vector],
         view: new ol.View({
           center: ol.proj.fromLonLat([19.8444378, 45.255125]),
           zoom: 18
@@ -196,6 +257,92 @@
         });
       }
       addInteractions();
+
+      /*
+       *  image handling
+       */
+      var image;
+
+      function initImagePane(img) {
+        var center = map.getView().getCenter();
+        document.getElementById('xcoord').value = Math.round(center[0]);
+        document.getElementById('ycoord').value = Math.round(center[1]);
+        document.getElementById('width').value = img.width;
+        document.getElementById('height').value = img.height;
+        document.getElementById('xoffset').value = 0;
+        document.getElementById('yoffset').value = 0;
+        document.getElementById('rotation').value = 0;
+        document.getElementById('opacity').value = 1;
+      }
+
+      function setImageStyle() {
+        if (imageSource.getFeatures().length > 0) {
+          imageSource.clear(true);
+        }
+        var myCanvas = document.getElementById('imageCanvas');
+        var xcoord = document.getElementById('xcoord').value;
+        var ycoord = document.getElementById('ycoord').value;
+        var width = document.getElementById('width').value;
+        var height = document.getElementById('height').value;
+        var xoffset = document.getElementById('xoffset').value;
+        var yoffset = document.getElementById('yoffset').value;
+        var opacity = document.getElementById('opacity').value;
+        var rotation = document.getElementById('rotation').value;
+        myCanvas.width = width;
+        myCanvas.height = height;
+        myCanvas.getContext('2d').drawImage(image, 0, 0, width, height);
+        var imageStyle = new ol.style.Style({
+          image: new ol.style.Icon({
+            img: myCanvas,
+            imgSize: [myCanvas.width, myCanvas.height],
+            opacity: opacity,
+            rotation: rotation * Math.PI / 180,
+            offset: [xoffset, yoffset]
+          })
+        });
+        var imagePoint = new ol.geom.Point([xcoord, ycoord]);
+        var imageFeature = new ol.Feature({geometry: imagePoint, name: "xyz"});
+        imageFeature.setStyle(imageStyle);
+        imageSource.addFeature(imageFeature);
+      }
+
+      function setOpacity() {
+        var opacity = document.getElementById('opacity').value;
+        imageVector.setOpacity(opacity);
+      }
+
+      function setRotation() {
+        var rotation = document.getElementById('rotation').value;
+      }
+
+      function addImageToMap(img) {
+        var imagePoint = new ol.geom.Point(map.getView().getCenter());
+        var imageFeature = new ol.Feature({geometry: imagePoint, name: "xyz"});
+        var myCanvas = document.getElementById('imageCanvas');
+        var imageStyle = new ol.style.Style({
+          image: new ol.style.Icon({
+            img: myCanvas,
+            imgSize: [myCanvas.width, myCanvas.height]
+          })
+        });
+        imageFeature.setStyle(imageStyle);
+        imageSource.addFeature(imageFeature);
+      }
+
+      function chooseImage(event) {
+        var myCanvas = document.getElementById('imageCanvas');
+        var ctx = myCanvas.getContext('2d');
+        image = new Image();
+        image.onload = function() {
+          myCanvas.width = image.width;
+          myCanvas.height = image.height;
+          ctx.drawImage(image, 0, 0);
+          initImagePane(image);
+          setImageStyle();
+        }
+        image.src = URL.createObjectURL(event.target.files[0]);
+      }
+
     </script>
   </body>
 </html>
