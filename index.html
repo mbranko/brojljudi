@@ -1,4 +1,4 @@
-<!doctype html>
+<!-- <!doctype html> -->
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -276,9 +276,6 @@
       }
 
       function setImageStyle() {
-        if (imageSource.getFeatures().length > 0) {
-          imageSource.clear(true);
-        }
         var myCanvas = document.getElementById('imageCanvas');
         var xcoord = document.getElementById('xcoord').value;
         var ycoord = document.getElementById('ycoord').value;
@@ -300,10 +297,17 @@
             offset: [xoffset, yoffset]
           })
         });
-        var imagePoint = new ol.geom.Point([xcoord, ycoord]);
-        var imageFeature = new ol.Feature({geometry: imagePoint, name: "xyz"});
-        imageFeature.setStyle(imageStyle);
-        imageSource.addFeature(imageFeature);
+        if (imageSource.getFeatures().length > 0) {
+          var f = imageSource.getFeatures()[0];
+          var g = f.getGeometry();
+          g.setCoordinates([xcoord, ycoord]);
+          f.setStyle(imageStyle);
+        } else {
+          var imagePoint = new ol.geom.Point([xcoord, ycoord]);
+          var imageFeature = new ol.Feature({geometry: imagePoint, name: "xyz"});
+          imageFeature.setStyle(imageStyle);
+          imageSource.addFeature(imageFeature);
+        }
       }
 
       function setOpacity() {
@@ -337,6 +341,7 @@
           myCanvas.width = image.width;
           myCanvas.height = image.height;
           ctx.drawImage(image, 0, 0);
+          imageSource.clear(true);
           initImagePane(image);
           setImageStyle();
         }
