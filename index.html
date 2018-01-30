@@ -42,6 +42,12 @@
         width: 50px;
         text-align: right;
       }      
+      .polydelete {
+        width: 20px;
+        text-align: center;
+        cursor: pointer;
+        color: red;
+      }
       #imagePane {
         width: 230px;
         position: fixed;
@@ -76,6 +82,7 @@
             <th class="polyarea">Površina</th>
             <th class="polydensity">Gustina</th>
             <th class="polynumber">Broj</th>
+            <th class="polydelete">&nbsp;</th>
           </tr>
         </thead>
         <tbody/>
@@ -131,6 +138,7 @@
                     '#00FF00', '#008000', '#00FFFF', '#008080', '#0000FF', 
                     '#FF00FF', '#800080'];
       var allPolygons = [];
+      var totalPolyCount = 0;
 
       function getDensityName(value) {
         switch(value) {
@@ -160,12 +168,13 @@
         }
       }
 
-      function createPanelItem(polygon, row) {
+      function createPanelItem(polygon, row, rowCount) {
         var html = '<tr>';
         html += '<td><span style="color: ' + polygon.color + '; font-weight: bold">P' + (polygon.index+1) + '</span></td>';
         html += '<td class="polyarea">' + getArea(polygon) + '</td>';
         html += '<td><select id="combo' + polygon.index + '"><option value="1">mala (0.5)</option><option value="2">srednja (2)</option><option value="3">velika (4)</option></select></td>';
         html += '<td class="polynumber">' + getCrowdSize(polygon) + '</td>';
+        html += '<td class="polydelete"><span onclick="deletepoly(' + rowCount + ')">x</span></td>'; 
         html += '</tr>';
         row.innerHTML = html;          
         var combo = document.getElementById('combo' + polygon.index);
@@ -176,14 +185,14 @@
         });
       }
 
-      function updatePanelItem(polygon, row) {
-        createPanelItem(polygon, row);
+      function updatePanelItem(polygon, row, rowCount) {
+        createPanelItem(polygon, row, rowCount);
       }
 
-      function addPanelItem(polygon, tbody) {
+      function addPanelItem(polygon, tbody, rowCount) {
         var row = document.createElement("tr");
         tbody.appendChild(row);
-        createPanelItem(polygon, row);
+        createPanelItem(polygon, row, rowCount);
       }
 
       function updatePanel() {
@@ -193,9 +202,9 @@
         for (var i = 0; i < allPolygons.length; i++) {
           totalPeople += getCrowdSize(allPolygons[i]);
           if (i < rows.length) {
-            updatePanelItem(allPolygons[i], rows[i]);
+            updatePanelItem(allPolygons[i], rows[i], i);
           } else {
-            addPanelItem(allPolygons[i], tBody);
+            addPanelItem(allPolygons[i], tBody, i);
           }
         }
         var footerRow = document.getElementById('polytable').getElementsByTagName('tfoot')[0].getElementsByTagName('tr')[0];
@@ -239,7 +248,7 @@
         draw.on('drawend', function(event) {
           var polygon = event.feature;
           var colorIndex = allPolygons.length % colors.length;
-          polygon.index = allPolygons.length;
+          polygon.index = totalPolyCount++;
           polygon.density = 1;
           polygon.color = colors[colorIndex];
           var fillColor = ol.color.asArray(polygon.color);
@@ -257,6 +266,18 @@
         });
       }
       addInteractions();
+
+      function deletepoly(index) {
+        var thisFeature = source.getFeatures()[index];
+        source.removeFeature(thisFeature);
+
+        allPolygons.splice(index, 1);
+        var tBody = document.getElementById('polytable').getElementsByTagName('tbody')[0];
+        while (tBody.firstChild) {
+          tBody.removeChild(tBody.firstChild);
+        }
+        updatePanel();
+      }
 
       /*
        *  image handling
