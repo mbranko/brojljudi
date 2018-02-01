@@ -111,6 +111,7 @@
           <span class="label">visina</span>
           <span class="field"><input type="number" id="height" name="height" step="1" min="1" onchange="setImageStyle()"/></span>
         </div>
+        <!--
         <div>
           <span class="label">X ofset</span>
           <span class="field"><input type="number" id="xoffset" name="xoffset" step="1" onchange="setImageStyle()"/></span>
@@ -119,6 +120,7 @@
           <span class="label">Y ofset</span>
           <span class="field"><input type="number" id="yoffset" name="yoffset" step="1" onchange="setImageStyle()"/></span>
         </div>
+        -->
         <div>
           <span class="label">rotacija</span>
           <span class="field"><input type="number" id="rotation" name="rotation" step="1" onchange="setImageStyle()"/></span>
@@ -235,6 +237,11 @@
         updatePanel();
       });
       map.addInteraction(modify);
+      var select = new ol.interaction.Select({layers: [vector, imageVector]});
+      var translate = new ol.interaction.Translate({ features: select.getFeatures() });
+      map.addInteraction(select);
+      map.addInteraction(translate);
+
       var draw, snap;
 
       function addInteractions() {
@@ -290,8 +297,8 @@
         document.getElementById('ycoord').value = Math.round(center[1]);
         document.getElementById('width').value = img.width;
         document.getElementById('height').value = img.height;
-        document.getElementById('xoffset').value = 0;
-        document.getElementById('yoffset').value = 0;
+        //document.getElementById('xoffset').value = 0;
+        //document.getElementById('yoffset').value = 0;
         document.getElementById('rotation').value = 0;
         document.getElementById('opacity').value = 1;
       }
@@ -302,8 +309,8 @@
         var ycoord = document.getElementById('ycoord').value;
         var width = document.getElementById('width').value;
         var height = document.getElementById('height').value;
-        var xoffset = document.getElementById('xoffset').value;
-        var yoffset = document.getElementById('yoffset').value;
+        //var xoffset = document.getElementById('xoffset').value;
+        //var yoffset = document.getElementById('yoffset').value;
         var opacity = document.getElementById('opacity').value;
         var rotation = document.getElementById('rotation').value;
         myCanvas.width = width;
@@ -315,7 +322,8 @@
             imgSize: [myCanvas.width, myCanvas.height],
             opacity: opacity,
             rotation: rotation * Math.PI / 180,
-            offset: [xoffset, yoffset]
+            //offset: [xoffset, yoffset]
+            offset: [0, 0]
           })
         });
         if (imageSource.getFeatures().length > 0) {
@@ -352,6 +360,13 @@
         });
         imageFeature.setStyle(imageStyle);
         imageSource.addFeature(imageFeature);
+        /*
+        var modifyImage = new ol.interaction.Modify({source: imageSource});
+        modifyImage.on('modifyend', function(event) {
+          console.log('test');
+        });
+        map.addInteraction(modifyImage);
+        */
       }
 
       function chooseImage(event) {
